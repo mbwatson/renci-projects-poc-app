@@ -61,3 +61,22 @@ push: check-vars-IMAGE check-vars-TAG ## 📤 Push the Docker image
 	docker push $(IMAGE):$(TAG)
 
 publish: build push ## 🚀 Build and push in one go
+
+##@ Release Commands
+
+set-version: ## 🏷️  Set the application version across all files
+	@read -p "Enter new version: " VERSION; \
+	if [ -z "$VERSION" ]; then \
+		echo "❌ Version cannot be empty."; \
+		exit 1; \
+	fi; \
+	echo "🏷️  Setting version to $VERSION"; \
+	npm --prefix app version $VERSION --no-git-tag-version > /dev/null; \
+	sed -i'' -e "s/^appVersion:.*/appVersion: \"$VERSION\"/" helm/Chart.yaml; \
+	sed -i'' -e "s/  tag:.*/  tag: \"$VERSION\"/" helm/values.yaml; \
+	sed -i'' -e "s/^TAG=.*/TAG=$VERSION/" .env; \
+	echo "✅ Version updated to $VERSION in package.json, .env, helm/Chart.yaml, and helm/values.yaml";
+
+release: set-version publish helm-up ## 🚀 Run a full release: set version, publish, and deploy
+
+##@ Helm Commands
