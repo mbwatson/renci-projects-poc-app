@@ -1,8 +1,9 @@
 # 📦 Load environment variables if .env file exists
 ifneq (,$(wildcard .env))
   include .env
-  export IMAGE TAG NAMESPACE
+  export IMAGE TAG NAMESPACE RELEASE_NAME
   NAMESPACE ?= comms
+  RELEASE_NAME ?= renci-matrix
 endif
 
 # ============ 
@@ -61,3 +62,29 @@ push: check-vars-IMAGE check-vars-TAG ## 📤 Push the Docker image
 	docker push $(IMAGE):$(TAG)
 
 publish: build push ## 🚀 Build and push in one go
+
+##@ Helm Commands
+
+helm-up: check-vars-RELEASE_NAME check-vars-NAMESPACE ## 🚀 Deploy or upgrade the Helm chart
+	@echo "⬆️ Deploying/Upgrading Helm chart '$(RELEASE_NAME)' in namespace '$(NAMESPACE)'"
+	helm upgrade --install $(RELEASE_NAME) ./helm --namespace $(NAMESPACE)
+
+helm-down: check-vars-RELEASE_NAME check-vars-NAMESPACE ## 🗑️ Uninstall the Helm chart
+	@echo "⬇️ Uninstalling Helm chart '$(RELEASE_NAME)' from namespace '$(NAMESPACE)'"
+	helm uninstall $(RELEASE_NAME) --namespace $(NAMESPACE)
+
+helm-lint: ## 🔎 Lint the Helm chart
+	@echo "🔎 Linting Helm chart"
+	helm lint ./helm
+
+helm-template: check-vars-RELEASE_NAME check-vars-NAMESPACE ## 📄 Template the Helm chart
+	@echo "📄 Templating Helm chart '$(RELEASE_NAME)' in namespace '$(NAMESPACE)'"
+	helm template $(RELEASE_NAME) ./helm --namespace $(NAMESPACE)
+
+helm-status: check-vars-RELEASE_NAME check-vars-NAMESPACE ## 📊 Check the status of the Helm release
+	@echo "📊 Checking status of Helm release '$(RELEASE_NAME)' in namespace '$(NAMESPACE)'"
+	helm status $(RELEASE_NAME) --namespace $(NAMESPACE)
+
+helm-test: check-vars-RELEASE_NAME check-vars-NAMESPACE ## 🧪 Run Helm tests
+	@echo "🧪 Running tests for Helm release '$(RELEASE_NAME)' in namespace '$(NAMESPACE)'"
+	helm test $(RELEASE_NAME) --namespace $(NAMESPACE)
